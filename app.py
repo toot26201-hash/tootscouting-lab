@@ -10,11 +10,10 @@ st.set_page_config(page_title="TootScouting Hub", layout="wide")
 st.title("⚽ TootScouting - Match Analysis Dashboard")
 st.markdown("---")
 
-# 📂 كود ذكي للبحث عن أي ملف CSV مرفوع في الفولدر وقراءته فوراً
+# 📂 قراءة ملف الـ CSV أوتوماتيكياً
 @st.cache_data(ttl=1)
 def load_data():
     try:
-        # بيشوف كل الملفات اللي في الفولدر ويجيب أول ملف csv يقابله
         files = [f for f in os.listdir('.') if f.endswith('.csv')]
         if files:
             data = pd.read_csv(files[0])
@@ -28,23 +27,19 @@ df = load_data()
 
 # تأكيد وجود البيانات وتجهيز الأعمدة لملفك الحقيقي
 if not df.empty:
-    # فلتر الأحداث من عمود Event Type
     event_types = ["All"] + list(df['Event Type'].dropna().unique())
     selected_event = st.selectbox("Select Event Type", event_types)
     
-    # فلتر اللاعبين الحقيقي من عمود Players
     players_list = ["All"] + list(df['Players'].dropna().unique())
     selected_player = st.selectbox("Select Player", players_list)
 
-    # تصفية البيانات بناءً على الفلاتر
     filtered_df = df.copy()
     if selected_event != "All":
         filtered_df = filtered_df[filtered_df['Event Type'] == selected_event]
     if selected_player != "All":
         filtered_df = filtered_df[filtered_df['Players'] == selected_player]
 else:
-    # رسالة تنبيه واضحة لو الفولدر مفيش فيه أي ملف csv خالص
-    st.warning("⚠️ لم يتم العثور على أي ملف CSV في المستودع! تأكد من رفع ملف الماتش داخل جيت هاب في نفس الفولدر بجوار ملف app.py")
+    st.warning("⚠️ لم يتم العثور على أي ملف CSV في المستودع!")
     st.stop()
 
 st.markdown("---")
@@ -56,9 +51,18 @@ with col_video:
     st.markdown("### 🎥 Match Video")
     current_time = st.session_state.get("video_time", 0)
     
-    # 🔗 رابط الجوجل درايف بتاعك بعد تحويله للبث المباشر
-    VIDEO_URL = "https://docs.google.com/uc?export=download&id=16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
-    st.video(VIDEO_URL, start_time=current_time)
+    # ID الفيديو الخاص بك على جوجل درايف
+    VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
+    
+    # 🔒 استخدام طريقة الـ iframe لضمان تشغيل الفيديو من جوجل درايف وتجنب الحظر
+    embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview"
+    
+    # عرض الفيديو داخل الموقع بشكل احترافي ومضمون
+    st.components.v1.html(
+        f'<iframe src="{embed_url}" width="100%" height="450" allow="autoplay" allowfullscreen></iframe>',
+        height=460
+    )
+    st.caption(f"⏱️ التوقيت الحالي المستهدف في الـ Playlist: {current_time} ثانية")
 
 with col_playlist:
     st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
