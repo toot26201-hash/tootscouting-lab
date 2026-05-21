@@ -105,7 +105,6 @@ with col_playlist:
         for index, row in filtered_df.head(20).iterrows():
             col_card, col_btn = st.columns([3.5, 1])
             with col_card:
-                # تعديل السطر وإغلاق القوس بشكل صحيح
                 st.markdown(f"""
                 <div style="background-color: #1e293b; padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6; margin-bottom: 5px;">
                     <span style="color: #3b82f6; font-weight: bold; font-size: 11px;">{row['match']} | ⏱️ {row['timestamp']}</span><br>
@@ -116,20 +115,4 @@ with col_playlist:
                 st.markdown("<div style='padding-top: 10px;'></div>", unsafe_allow_html=True)
                 if st.button("👁️ Watch", key=f"btn_p_{index}"):
                     st.session_state["current_clip_time"] = int(row['seconds'])
-                    st.rerun()
-
-st.markdown("---")
-
-# 4. Cumulative Tactical Pitch Map (Mplsoccer)
-st.markdown(f"#### 🏟️ Cumulative Tactical Pitch Map (Opta Blueprint)")
-
-pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155', linewidth=2)
-fig, ax = pitch.draw(figsize=(10, 6))
-fig.patch.set_facecolor('#0f172a')
-
-x_start_col = next((c for c in filtered_df.columns if c.lower() in ['x start', 'x_start']), None)
-y_start_col = next((c for c in filtered_df.columns if c.lower() in ['y start', 'y_start']), None)
-x_end_col = next((c for c in filtered_df.columns if c.lower() in ['x end', 'x_end']), None)
-y_end_col = next((c for c in filtered_df.columns if c.lower() in ['y end', 'y_end']), None)
-
-if x_
+                    st.rerun
