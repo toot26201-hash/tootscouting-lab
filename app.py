@@ -18,7 +18,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("⚽ TootScouting - Match Performance Analytics")
-st.markdown("<p style='color: #64748b; font-size: 16px;'>Single match tracking dashboard & dynamic pitch maps.</p>", unsafe_allow_index=True)
+st.markdown("<p style='color: #64748b; font-size: 16px;'>Single match tracking dashboard & dynamic pitch maps.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
 # 🔗 الرابط المباشر والمتنظف بالـ gid الحقيقي لماتش NJS vs EPS
@@ -75,7 +75,6 @@ col_video, col_playlist = st.columns([1.4, 1])
 with col_video:
     st.markdown("#### 🎥 Video Analysis Player")
     start_time = st.session_state.get("current_clip_time", 0)
-    # رابط فيديو المباراة على يوتيوب
     st.video(f"https://www.youtube.com/watch?v=dQw4w9WgXcQ&t={start_time}s", start_time=start_time)
 
 with col_playlist:
