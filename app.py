@@ -21,7 +21,7 @@ st.title("⚽ TootScouting - Professional Scouting Database")
 st.markdown("<p style='color: #64748b; font-size: 16px;'>Multi-match tracking system & cumulative tactical pitch maps.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 🔗 Connected Google Sheet Database ID
+# 🔗 Connected Google Sheet Database ID (Line 25)
 SPREADSHEET_ID = "1tv2bsiF7RLOIadzO_SBmB9RjnXqk0wzK"
 SHEET_NAME = "Sheet1"
 GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
@@ -40,13 +40,12 @@ def load_database():
             return data.dropna(subset=['Event Type'])
         return data
     except Exception as e:
-        # لو الشيت مش شغال لأي سبب، الكود هيعمل شيت وهمي عشان الموقع يفتح وميجبش خطأ
-        st.sidebar.info("💡 Sheet connection initializing or setup required.")
+        # لو الشيت مش شغال لأي سبب، الكود يعمل شيت تجريبي عشان الموقع يفتح وميجبش خطأ
         return pd.DataFrame(columns=['Event Type', 'Players', 'Start (mm:ss)', 'Start (ms)', 'X Start', 'Y Start', 'X End', 'Y End', 'Match'])
 
 df = load_database()
 
-# لو الداتا لسه فاضية، هنحط سطر وهمي عشان تشوف شكل الملعب والـ Playlist شغالين إزاي بالإنجليزي
+# لو الداتا لسه فاضية، هنعرض سطر تجريبي لحين تفعيل الشيت صح
 if df.empty or 'Event Type' not in df.columns:
     df = pd.DataFrame([{
         'Event Type': 'Pass', 'Players': 'Example Player', 'Start (mm:ss)': '01:26', 
