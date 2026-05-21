@@ -48,42 +48,53 @@ col_video, col_playlist = st.columns([1.5, 1])
 # ID الفيديو الثابت الخاص بك على جوجل درايف
 VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
 
-# إدارة وقت الفيديو في الـ session_state لمنع إعادة التشغيل من الأول
-if "video_seconds" not in st.session_state:
-    st.session_state["video_seconds"] = 0
+# إدارة وقت البداية والنهاية في الـ session_state
+if "start_seconds" not in st.session_state: st.session_state["start_seconds"] = 0
+if "end_seconds" not in st.session_state: st.session_state["end_seconds"] = 3600
 
 with col_video:
     st.markdown("### 🎥 Match Video Player")
     
-    current_seconds = st.session_state["video_seconds"]
-    embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview?t={current_seconds}s"
+    start_s = st.session_state["start_seconds"]
+    end_s = st.session_state["end_seconds"]
+    clip_duration = end_s - start_s if end_s > start_s else 5
     
-    # عرض مشغل الفيديو في نفس الصفحة وتحديثه ديناميكياً
+    # دمج البداية والنهاية في رابط الـ Preview لجوجل درايف لتقييد مدة العرض
+    embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview?t={start_s}s&start={start_s}&end={end_s}"
+    
+    # عرض مشغل الفيديو
     st.components.v1.html(
         f'<iframe src="{embed_url}" width="100%" height="400" allow="autoplay; encrypted-media" allowfullscreen></iframe>',
         height=410
     )
-    st.caption(f"⏱️ التوقيت الحالي: {int(current_seconds // 60)}:{int(current_seconds % 60):02d}")
+    # عداد يوضح للمحلل مدة الكليب الحالي المتاح
+    st.success(f"⏱️ الكليب الحالي المفروم: من {int(start_s // 60)}:{int(start_s % 60):02d} إلى {int(end_s // 60)}:{int(end_s % 60):02d} | (المدة: {clip_duration} ثوانٍ)")
 
 with col_playlist:
     st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
     
     # عرض اللقطات المطابقة للفلاتر
     for index, row in filtered_df.head(20).iterrows():
-        ms = row.get('Start (ms)', 0)
-        seconds = int(float(ms) / 1000) if not pd.isna(ms) else 0
+        # حساب ثواني البداية والنهاية من الـ ms اللي في ملفك
+        start_ms = row.get('Start (ms)', 0)
+        stop_ms = row.get('Stop (ms)', start_ms + 5000) # لو مفيش نهاية بيفترض 5 ثواني تلقائي
+        
+        sec_start = int(pd.to_numeric(start_ms, errors='coerce') / 1000) if not pd.isna(start_ms) else 0
+        sec_stop = int(pd.to_numeric(stop_ms, errors='coerce') / 1000) if not pd.isna(stop_ms) else sec_start + 5
         
         col_text, col_btn = st.columns([3, 1])
         with col_text:
             st.markdown(f"⏱️ **{row['Start (mm:ss)']}** | {row['Event Type']} - {row['Players']}")
         with col_btn:
             if st.button("Watch", key=f"play_{index}"):
-                st.session_state["video_seconds"] = seconds
+                # حفظ البداية والنهاية اللحظية للكليب الحالي
+                st.session_state["start_seconds"] = sec_start
+                st.session_state["end_seconds"] = sec_stop
                 st.rerun()
 
 st.markdown("---")
 
-# 4. الملعب التكتيكي (أسطر مضغوطة وقصيرة ومحمية من القطع)
+# 4. الملعب التكتيكي
 st.markdown("### 🏟️ Tactical Pitch Map")
 pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155')
 fig, ax = pitch.draw(figsize=(10, 7))
@@ -101,7 +112,6 @@ for index, row in filtered_df.iterrows():
         ye = float(row['Y End']) * 100
         pitch.arrows(xs, ys, xe, ye, color='#3b82f6', width=2, headwidth=4, ax=ax)
     else:
-        # سطر مضغوط تماماً بدون نزول لسطر جديد لمنع الـ SyntaxError
         pitch.scatter(xs, ys, color='#10b981', s=100, edgecolors='#ffffff', ax=ax)
 
 st.pyplot(fig)
