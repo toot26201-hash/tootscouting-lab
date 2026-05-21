@@ -9,9 +9,8 @@ st.markdown("---")
 
 # 🔗 ربط الشيت المباشر
 SPREADSHEET_ID = "1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI"
-GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid=0"
-
-@st.cache_data(ttl=1)
+# 🔗 الرابط المباشر للشيت بالـ gid الحقيقي بتاع ماتش NJS vs EPS
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI/export?format=csv&gid=1424911760"@st.cache_data(ttl=1)
 def load_data():
     try:
         data = pd.read_csv(GOOGLE_SHEET_URL)
