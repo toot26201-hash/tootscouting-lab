@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
+import os
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="TootScouting Hub", layout="wide")
@@ -9,14 +10,17 @@ st.set_page_config(page_title="TootScouting Hub", layout="wide")
 st.title("⚽ TootScouting - Match Analysis Dashboard")
 st.markdown("---")
 
-# 📂 قراءة ملف الـ CSV المحلي المرفوع على جيت هاب
+# 📂 كود ذكي للبحث عن أي ملف CSV مرفوع في الفولدر وقراءته فوراً
 @st.cache_data(ttl=1)
 def load_data():
     try:
-        data = pd.read_csv("match_data.csv")
-        # تنظيف أي مسافات مخفية في أسماء الأعمدة من فوق
-        data.columns = data.columns.astype(str).str.strip()
-        return data
+        # بيشوف كل الملفات اللي في الفولدر ويجيب أول ملف csv يقابله
+        files = [f for f in os.listdir('.') if f.endswith('.csv')]
+        if files:
+            data = pd.read_csv(files[0])
+            data.columns = data.columns.astype(str).str.strip()
+            return data
+        return pd.DataFrame()
     except:
         return pd.DataFrame()
 
@@ -39,7 +43,8 @@ if not df.empty:
     if selected_player != "All":
         filtered_df = filtered_df[filtered_df['Players'] == selected_player]
 else:
-    st.error("⚠️ ملف match_data.csv غير موجود أو فارغ")
+    # رسالة تنبيه واضحة لو الفولدر مفيش فيه أي ملف csv خالص
+    st.warning("⚠️ لم يتم العثور على أي ملف CSV في المستودع! تأكد من رفع ملف الماتش داخل جيت هاب في نفس الفولدر بجوار ملف app.py")
     st.stop()
 
 st.markdown("---")
@@ -51,23 +56,19 @@ with col_video:
     st.markdown("### 🎥 Match Video")
     current_time = st.session_state.get("video_time", 0)
     
-    # 🔗 رابط الجوجل درايف بعد تحويله للبث المباشر
+    # 🔗 رابط الجوجل درايف بتاعك بعد تحويله للبث المباشر
     VIDEO_URL = "https://docs.google.com/uc?export=download&id=16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
-    
-    # تشغيل الفيديو وتزامنه بالثانية
     st.video(VIDEO_URL, start_time=current_time)
 
 with col_playlist:
     st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
     
-    # عرض أول 20 لقطة مطابقة للفلاتر
     for index, row in filtered_df.head(20).iterrows():
         ms = row.get('Start (ms)', 0)
         seconds = int(float(ms) / 1000) if not pd.isna(ms) else 0
         
         col_text, col_btn = st.columns([3, 1])
         with col_text:
-            # عرض التوقيت والحدث واسم اللاعب الحقيقي
             st.markdown(f"⏱️ **{row['Start (mm:ss)']}** | {row['Event Type']} - {row['Players']}")
         with col_btn:
             if st.button("Watch", key=f"play_{index}"):
@@ -82,7 +83,6 @@ pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155')
 fig, ax = pitch.draw(figsize=(10, 7))
 fig.patch.set_facecolor('#0f172a')
 
-# رسم التمريرات والأحداث على الملعب
 for index, row in filtered_df.iterrows():
     if pd.isna(row['X Start']) or pd.isna(row['Y Start']):
         continue
