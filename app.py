@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom Style
+# Custom Style for Premium Dark UI
 st.markdown("""
     <style>
     .block-container { padding-top: 2rem; }
@@ -21,28 +21,25 @@ st.title("⚽ TootScouting - Professional Scouting Database")
 st.markdown("<p style='color: #64748b; font-size: 16px;'>Multi-match tracking system & cumulative tactical pitch maps.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 🔗 رابط جوجل شيتس المركزي (قاعدة البيانات)
-# استبدل هذا الـ ID بالـ ID الخاص بملف الـ Google Sheets الذي ستجمع فيه كل مبارياتك
+# 🔗 Your Connected Google Sheet Database ID (Fixed)
 SPREADSHEET_ID = "1tv2bsiF7RLOIadzO_SBmB9RjnXqk0wzK"
 SHEET_NAME = "Sheet1"
 GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
-# قاموس لربط كل مباراة برابط الفيديو الخاص بها تلقائياً
+# Video Registry (Match Name -> Video Link)
 VIDEO_REGISTRY = {
-    "NJS vs EPS": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # مثال لرابط ماتش NJS
+    "NJS vs EPS": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "Match 2": "https://www.youtube.com/watch?v=another_video",
     "Match 3": "https://www.youtube.com/watch?v=third_video",
 }
 
-@st.cache_data(ttl=300) # تحديث الداتا تلقائياً كل 5 دقائق عند إضافة ماتش جديد
+@st.cache_data(ttl=300) # Updates every 5 minutes when you add new data
 def load_database():
     try:
         data = pd.read_csv(GOOGLE_SHEET_URL)
         return data.dropna(subset=['Event Type'])
-    except:
-        # إذا لم يتم ربط الشيت بعد، سيقرأ الكود ملفاً تجريبياً حتي تضع الرابط
-        st.warning("⚠️ Running on demo layout. Please link your Google Sheet SPREADSHEET_ID in the code.")
-        # تجربة القراءة من ملف مرفوع محلياً كـ fallback
+    except Exception as e:
+        st.warning("⚠️ Reading fallback or file format is being initialized. Checking columns...")
         try:
             return pd.read_csv('Untitled-spreadsheet.csv').dropna(subset=['Event Type'])
         except:
@@ -51,24 +48,23 @@ def load_database():
 df = load_database()
 
 if not df.empty:
-    # توحيد البيانات والمسميات
+    # Standardizing your CSV columns
     df['event_type'] = df['Event Type'].str.strip()
     df['player'] = df['Players'].fillna('Unknown Player')
     df['timestamp'] = df['Start (mm:ss)']
     
-    # تأمين وجود عمود المباراة، لو مش موجود في الملف الحالي بنسميه افتراضياً NJS vs EPS
+    # Auto-add Match column if not present yet
     if 'Match' not in df.columns:
         df['Match'] = 'NJS vs EPS'
         
     if 'Start (ms)' in df.columns:
         df['seconds'] = (df['Start (ms)'] / 1000).astype(int)
 
-    # 2. الفلاتر الاستراتيجية للمنظومة التراكمية
+    # 2. Strategic Filters Section
     st.markdown("### 🔍 Multi-Match Analytics Filters")
     col_f1, col_f2, col_f3 = st.columns(3)
     
     with col_f1:
-        # هنا يقدر يختار ماتش محدد أو يختار "كل المباريات" لتحليل أداء الحارس عبر الموسم
         available_matches = ["All Matches"] + list(df['Match'].unique())
         selected_match = st.selectbox("Select Match / Timeline:", available_matches)
         
@@ -78,9 +74,9 @@ if not df.empty:
         
     with col_f3:
         available_players = ["All Players"] + list(df['player'].unique())
-        selected_player = st.selectbox("Select Target Player (e.g. Goalkeeper):", available_players)
+        selected_player = st.selectbox("Select Target Player:", available_players)
 
-    # تطبيق الفلاتر
+    # Apply Cumulative Filters
     filtered_df = df.copy()
     if selected_match != "All Matches":
         filtered_df = filtered_df[filtered_df['Match'] == selected_match]
@@ -91,18 +87,16 @@ if not df.empty:
 
     st.markdown("---")
 
-    # 3. العرض: مشغل الفيديو وقائمة المقاطع (Playlist)
+    # 3. Layout: Video Player & Event Playlist
     col_video, col_playlist = st.columns([1.4, 1])
     
     with col_video:
         st.markdown("#### 🎥 Video Analysis Player")
         start_time = st.session_state.get("current_clip_time", 0)
         
-        # تحديد رابط الفيديو بناءً على المباراة المختارة
         if selected_match != "All Matches":
             active_video_url = VIDEO_REGISTRY.get(selected_match, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
         else:
-            # لو معلم على كل الماتشات، بيجيب فيديو أول لقطة مفلترة
             first_match_in_filter = filtered_df['Match'].iloc[0] if not filtered_df.empty else "NJS vs EPS"
             active_video_url = VIDEO_REGISTRY.get(first_match_in_filter, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
             
@@ -113,7 +107,6 @@ if not df.empty:
         if filtered_df.empty:
             st.warning("No clips found for the selected tracking combination.")
         else:
-            # عرض أول 7 لقطات للمحافظة على نظافة التصميم
             for index, row in filtered_df.head(7).iterrows():
                 col_card, col_btn = st.columns([3.5, 1])
                 with col_card:
@@ -126,15 +119,13 @@ if not df.empty:
                 with col_btn:
                     st.markdown("<div style='padding-top: 10px;'></div>", unsafe_allow_html=True)
                     if st.button("👁️ Watch", key=f"btn_p_{index}"):
-                        # عند الضغط على الكارت، يتغير توقيت الفيديو فوراً
                         st.session_state["current_clip_time"] = int(row['seconds'])
                         st.rerun()
 
     st.markdown("---")
     
-    # 4. خريطة الملعب التراكمية (Mplsoccer Opta Pitch)
+    # 4. Cumulative Tactical Pitch Map (Mplsoccer)
     st.markdown(f"#### 🏟️ Cumulative Tactical Pitch Map (Opta Blueprint)")
-    st.caption("Showing historical distribution lines and locations across the selected criteria.")
     
     pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155', linewidth=2)
     fig, ax = pitch.draw(figsize=(10, 6))
@@ -143,7 +134,7 @@ if not df.empty:
     plot_df = filtered_df.dropna(subset=['X Start', 'Y Start'])
     
     if not plot_df.empty:
-        # رسم أسهم التمريرات (Passes)
+        # Drawing Pass Arrows
         passes_df = plot_df[plot_df['event_type'].str.lower() == 'pass']
         if not passes_df.empty:
             pitch.arrows(
@@ -152,7 +143,7 @@ if not df.empty:
                 color='#3b82f6', width=2.5, headwidth=4, headlength=4, ax=ax
             )
             
-        # رسم باقي الأحداث كنقاط (Shots, Interceptions, etc.)
+        # Drawing Other tracking spots
         other_df = plot_df[plot_df['event_type'].str.lower() != 'pass']
         if not other_df.empty:
             pitch.scatter(
