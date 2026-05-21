@@ -23,7 +23,7 @@ st.markdown("---")
 
 # 🔗 رابط جوجل شيتس المركزي (قاعدة البيانات)
 # استبدل هذا الـ ID بالـ ID الخاص بملف الـ Google Sheets الذي ستجمع فيه كل مبارياتك
-SPREADSHEET_ID = "ضع_هنا_رقم_الـ_ID_الخاص_بملف_جوجل_شيتس"
+SPREADSHEET_ID = "SPREADSHEET_ID = "1tv2bsiF7RLOIadzO_SBmB9RjnXqk0wzK"
 SHEET_NAME = "Sheet1"
 GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
