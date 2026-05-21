@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
+import os
 
 # 1. إعدادات الصفحة
 st.set_page_config(page_title="TootScouting Hub", layout="wide")
@@ -9,18 +10,31 @@ st.set_page_config(page_title="TootScouting Hub", layout="wide")
 st.title("⚽ TootScouting - Match Analysis Dashboard")
 st.markdown("---")
 
-# 📂 قراءة ملف الـ CSV المحلي المرفوع على جيت هاب
+# اسم الملف الافتراضي اللي الكود هيقراه
+FILENAME = "match_data.csv"
+
+# 📂 قراءة ملف الـ CSV المحلي بأمان تام
 @st.cache_data(ttl=1)
 def load_data():
-    try:
-        data = pd.read_csv("match_data.csv")
-        return data
-    except:
-        return pd.DataFrame()
+    if os.path.exists(FILENAME):
+        try:
+            data = pd.read_csv(FILENAME)
+            # تنظيف أي مسافات مخفية في أسماء الأعمدة
+            data.columns = data.columns.astype(str).str.strip()
+            return data
+        except:
+            return None
+    return None
 
 df = load_data()
 
-# 2. الفلاتر الأساسية
+# خط الدفاع: لو الملف مش موجود أو فيه مشكلة، هيعرض تنبيه بدل ما يضرب الكود
+if df is None or df.empty:
+    st.error(f"⚠️ لم يتم العثور على ملف البيانات! تأكد من رفع ملف الـ CSV في جيت هاب في نفس الفولدر وتسميته بالظبط: {FILENAME}")
+    st.info("💡 ملاحظة: تأكد أن الحروف كلها صغيرة (سمول) وبدون مسافات في اسم الملف.")
+    st.stop() # يوقف الكود هنا بأمان بدون أخطاء سوداء
+
+# 2. الفلاتر الأساسية (Event & Player)
 col1, col2 = st.columns(2)
 with col1:
     event_types = ["All"] + list(df['Event Type'].dropna().unique())
@@ -29,7 +43,7 @@ with col2:
     players = ["All"] + list(df['Players'].dropna().unique())
     selected_player = st.selectbox("Select Player", players)
 
-# تصفية البيانات
+# تصفية البيانات بناءً على الفلاتر
 filtered_df = df.copy()
 if selected_event != "All":
     filtered_df = filtered_df[filtered_df['Event Type'] == selected_event]
@@ -47,9 +61,9 @@ with col_video:
     st.video(f"https://www.youtube.com/watch?v=dQw4w9WgXcQ&t={current_time}s", start_time=current_time)
 
 with col_playlist:
-    st.markdown("### 📊 Event Playlist")
+    st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
     for index, row in filtered_df.head(15).iterrows():
-        ms = row['Start (ms)']
+        ms = row.get('Start (ms)', 0)
         seconds = int(ms / 1000) if not pd.isna(ms) else 0
         
         col_text, col_btn = st.columns([3, 1])
