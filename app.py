@@ -3,17 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 
-# 1. إعدادات الصفحة
 st.set_page_config(page_title="TootScouting Hub", layout="wide")
-
 st.title("⚽ TootScouting - Match Analysis Dashboard")
 st.markdown("---")
 
-# 📂 قراءة ملف الـ CSV المحلي المرفوع في نفس الفولدر
+# 📂 قراءة ملف الـ CSV المحلي
 @st.cache_data(ttl=1)
 def load_data():
     try:
-        # لو مسمي الملف اسم تاني غير 'match_data.csv' غير الاسم هنا بس
         data = pd.read_csv("match_data.csv")
         data.columns = data.columns.astype(str).str.strip()
         return data
@@ -22,7 +19,7 @@ def load_data():
 
 df = load_data()
 
-# تأمين العثور على الأعمدة ديناميكياً لتفادي الـ KeyError
+# تأمين العثور على الأعمدة ديناميكياً
 if not df.empty:
     ev_c = next((c for c in df.columns if 'event' in c.lower()), df.columns[0])
     pl_c = next((c for c in df.columns if 'player' in c.lower()), df.columns[1] if len(df.columns)>1 else df.columns[0])
@@ -36,7 +33,7 @@ if not df.empty:
 else:
     df = pd.DataFrame([{'Event Type': 'Pass', 'Players': 'Please upload match_data.csv', 'Start (mm:ss)': '00:00', 'Start (ms)': 0, 'X Start': 0.5, 'Y Start': 0.5}])
 
-# 2. الفلاتر الأساسية (Event & Player)
+# الفلاتر
 col1, col2 = st.columns(2)
 with col1:
     event_types = ["All"] + list(df['Event Type'].dropna().unique())
@@ -51,7 +48,7 @@ if selected_player != "All": filtered_df = filtered_df[filtered_df['Players'] ==
 
 st.markdown("---")
 
-# 3. تقسيم الشاشة: الفيديو والقائمة
+# تقسيم الشاشة
 col_video, col_playlist = st.columns([1.5, 1])
 with col_video:
     st.markdown("### 🎥 Match Video")
@@ -75,4 +72,5 @@ with col_playlist:
 st.markdown("---")
 st.markdown("### 🏟️ Tactical Pitch Map")
 
-pitch = Pitch(pitch_type='opta', pitch_color='#0f1
+# 🔒 تعديل أسطر الملعب لسطور قصيرة جداً ومحمية من قطع جيت هاب
+pitch = Pitch(pitch_type='opta',
