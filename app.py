@@ -22,7 +22,7 @@ st.markdown("<p style='color: #64748b; font-size: 16px;'>Multi-match tracking sy
 st.markdown("---")
 
 # 🔗 Connected Google Sheet Database ID (Line 25)
-SPREADSHEET_ID = "1tv2bsiF7RLOIadzO_SBmB9RjnXqk0wzK"
+SPREADSHEET_ID = "1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI"
 SHEET_NAME = "Sheet1"
 GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
