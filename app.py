@@ -21,15 +21,14 @@ st.title("⚽ TootScouting - Professional Scouting Database")
 st.markdown("<p style='color: #64748b; font-size: 16px;'>Multi-match tracking system & cumulative tactical pitch maps.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 🔗 Your Real Google Sheet ID (From your spreadsheet tab screenshot)
+# 🔗 Your Real Google Sheet ID
 SPREADSHEET_ID = "1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI"
 GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid=0"
 
-@st.cache_data(ttl=1) # Updates immediately
+@st.cache_data(ttl=1) 
 def load_database():
     try:
         data = pd.read_csv(GOOGLE_SHEET_URL)
-        # Clean columns to bypass lowercase/uppercase mixing
         data.columns = data.columns.astype(str).str.strip()
         return data
     except Exception as e:
@@ -37,18 +36,16 @@ def load_database():
 
 raw_df = load_database()
 
-# Map columns dynamically based on what is available in your file
+# Map columns dynamically
 if not raw_df.empty:
     df = raw_df.copy()
     
-    # Dynamic Column Matchers
     event_col = next((c for c in df.columns if c.lower() in ['event type', 'event_type', 'eventtype']), None)
     player_col = next((c for c in df.columns if c.lower() in ['players', 'player']), None)
     time_col = next((c for c in df.columns if c.lower() in ['start (mm:ss)', 'start(mm:ss)', 'timestamp']), None)
     ms_col = next((c for c in df.columns if c.lower() in ['start (ms)', 'start(ms)']), None)
     match_col = next((c for c in df.columns if c.lower() == 'match'), None)
 
-    # Standardizing data fields
     df['event_final'] = df[event_col].astype(str).str.strip() if event_col else "Event"
     df['player_final'] = df[player_col].fillna('Unknown Player') if player_col else "Unknown Player"
     df['timestamp'] = df[time_col] if time_col else "00:00"
@@ -59,7 +56,6 @@ if not raw_df.empty:
     else:
         df['seconds'] = 0
 else:
-    # Safest Fallback if sheet is completely unreachable
     df = pd.DataFrame([{
         'event_final': 'Pass', 'player_final': 'Connecting to Sheet...', 'timestamp': '00:00', 
         'seconds': 0, 'match': 'NJS vs EPS', 'X Start': 0, 'Y Start': 0
@@ -109,6 +105,31 @@ with col_playlist:
         for index, row in filtered_df.head(20).iterrows():
             col_card, col_btn = st.columns([3.5, 1])
             with col_card:
+                # تعديل السطر وإغلاق القوس بشكل صحيح
                 st.markdown(f"""
                 <div style="background-color: #1e293b; padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6; margin-bottom: 5px;">
-                    <span style="color: #3b82f6; font-weight: bold; font-size: 11px;">{row['match']} | ⏱️ {
+                    <span style="color: #3b82f6; font-weight: bold; font-size: 11px;">{row['match']} | ⏱️ {row['timestamp']}</span><br>
+                    <strong style="color: #f1f5f9; font-size: 13px;">{row['event_final']} - {row['player_final']}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_btn:
+                st.markdown("<div style='padding-top: 10px;'></div>", unsafe_allow_html=True)
+                if st.button("👁️ Watch", key=f"btn_p_{index}"):
+                    st.session_state["current_clip_time"] = int(row['seconds'])
+                    st.rerun()
+
+st.markdown("---")
+
+# 4. Cumulative Tactical Pitch Map (Mplsoccer)
+st.markdown(f"#### 🏟️ Cumulative Tactical Pitch Map (Opta Blueprint)")
+
+pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155', linewidth=2)
+fig, ax = pitch.draw(figsize=(10, 6))
+fig.patch.set_facecolor('#0f172a')
+
+x_start_col = next((c for c in filtered_df.columns if c.lower() in ['x start', 'x_start']), None)
+y_start_col = next((c for c in filtered_df.columns if c.lower() in ['y start', 'y_start']), None)
+x_end_col = next((c for c in filtered_df.columns if c.lower() in ['x end', 'x_end']), None)
+y_end_col = next((c for c in filtered_df.columns if c.lower() in ['y end', 'y_end']), None)
+
+if x_
