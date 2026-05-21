@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # إعداد الصفحة
-st.set_page_config(page_title="TootScouting - Match View", layout="wide")
+st.set_page_config(page_title="TootScouting", layout="wide")
 st.title("⚽ TootScouting Match Analysis")
 
 # قراءة البيانات
@@ -17,30 +17,26 @@ df = load_data()
 if not df.empty:
     df.columns = df.columns.str.strip()
     
-    col1, col2 = st.columns(2)
-    selected_event = col1.selectbox("Event Type", ["All"] + list(df['Event Type'].dropna().unique()))
-    selected_player = col2.selectbox("Player", ["All"] + list(df['Players'].dropna().unique()))
-    
-    filtered_df = df.copy()
-    if selected_event != "All": filtered_df = filtered_df[filtered_df['Event Type'] == selected_event]
-    if selected_player != "All": filtered_df = filtered_df[filtered_df['Players'] == selected_player]
-
-    # عرض المشغل في نفس التبيوب (حل تقني متقدم)
-    st.subheader("🎥 Match Video Player")
-    
-    # تحويل الرابط للـ Preview ليعمل داخل الـ iframe
+    # 1. المشغل (فوق)
+    st.subheader("🎥 Match Video")
     VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
     embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview"
-    
-    # عرض الفيديو
     st.components.v1.html(
-        f'<iframe src="{embed_url}" width="100%" height="500" allow="autoplay" allowfullscreen></iframe>',
-        height=510
+        f'<iframe src="{embed_url}" width="100%" height="400" allow="autoplay" allowfullscreen></iframe>',
+        height=410
     )
 
-    # القائمة
+    # 2. القائمة (تحت أو جنب الفيديو)
     st.subheader("📊 Event Playlist")
-    for index, row in filtered_df.head(10).iterrows():
-        st.write(f"⏱️ {row['Start (mm:ss)']} | {row['Event Type']} - {row['Players']}")
+    for index, row in df.head(15).iterrows():
+        # إنشاء صف جديد لكل لقطة لضمان ظهور الزرار
+        col_name, col_btn = st.columns([4, 1])
+        col_name.write(f"⏱️ {row['Start (mm:ss)']} | {row['Event Type']} - {row['Players']}")
+        
+        # الزرار اللي كان مختفي ظهر تاني هنا
+        if col_btn.button("Watch", key=f"btn_{index}"):
+            st.info(f"تم اختيار: {row['Event Type']} - {row['Players']}")
+            # ملاحظة: جوجل درايف لا يدعم التنقل التلقائي داخل الـ iframe، 
+            # لكن الزرار الآن يظهر ويعمل لتسجيل اختيارك.
 else:
-    st.error("⚠️ الملف مش موجود! ارفع ملف CSV في المستودع.")
+    st.error("⚠️ ملف CSV غير موجود.")
