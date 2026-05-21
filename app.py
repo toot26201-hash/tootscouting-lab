@@ -3,86 +3,122 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 
-# 1. إعدادات الصفحة
-st.set_page_config(page_title="TootScouting Hub", layout="wide")
+# 1. إعداد الصفحة
+st.set_page_config(page_title="TootScouting Lab - Mplsoccer", layout="wide")
 
-st.title("⚽ TootScouting - Match Analysis Dashboard")
+st.markdown("<style>.block-container { padding-top: 2rem; } body { background-color: #0e1117; color: white; }</style>", unsafe_allow_html=True)
+st.title("⚽ منصة TootScouting للتحليل التكتيكي المطور")
 st.markdown("---")
 
-# 📂 قراءة ملف الـ CSV المحلي المرفوع على جيت هاب
-@st.cache_data(ttl=1)
-def load_data():
-    try:
-        data = pd.read_csv("match_data.csv")
-        return data
-    except:
-        return pd.DataFrame()
+# 2. القائمة الجانبية
+st.sidebar.header("📁 مركز التحكم بالبيانات")
+uploaded_file = st.sidebar.file_uploader("ارفع ملف أحداث المباراة (CSV)", type=["csv"])
+video_url_input = st.sidebar.text_input("رابط فيديو المباراة", "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
-df = load_data()
-
-# 2. الفلاتر الأساسية (مطابقة لأعمدة ملفك بالملي)
-col1, col2 = st.columns(2)
-with col1:
-    event_types = ["All"] + list(df['Event Type'].dropna().unique())
-    selected_event = st.selectbox("Select Event Type", event_types)
-with col2:
-    # تعديل اسم العمود لـ Name ليطابق ملف الـ CSV بتاعك
-    players = ["All"] + list(df['Name'].dropna().unique())
-    selected_player = st.selectbox("Select Player", players)
-
-# تصفية البيانات
-filtered_df = df.copy()
-if selected_event != "All":
-    filtered_df = filtered_df[filtered_df['Event Type'] == selected_event]
-if selected_player != "All":
-    filtered_df = filtered_df[filtered_df['Name'] == selected_player]
-
-st.markdown("---")
-
-# 3. تقسيم الشاشة: الفيديو والقائمة
-col_video, col_playlist = st.columns([1.5, 1])
-
-with col_video:
-    st.markdown("### 🎥 Match Video")
-    current_time = st.session_state.get("video_time", 0)
-    st.video(f"https://www.youtube.com/watch?v=dQw4w9WgXcQ&t={current_time}s", start_time=current_time)
-
-with col_playlist:
-    st.markdown("### 📊 Event Playlist")
-    for index, row in filtered_df.head(15).iterrows():
-        ms = row['Start (ms)']
-        seconds = int(ms / 1000) if not pd.isna(ms) else 0
-        
-        col_text, col_btn = st.columns([3, 1])
-        with col_text:
-            # استخدام column الـ Name لعرض اسم اللاعب الحقيقي
-            st.markdown(f"⏱️ **{row['Start (mm:ss)']}** | {row['Event Type']} - {row['Name']}")
-        with col_btn:
-            if st.button("Watch", key=f"play_{index}"):
-                st.session_state["video_time"] = seconds
-                st.rerun()
-
-st.markdown("---")
-
-# 4. الملعب التكتيكي
-st.markdown("### 🏟️ Tactical Pitch Map")
-pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155')
-fig, ax = pitch.draw(figsize=(10, 7))
-fig.patch.set_facecolor('#0f172a')
-
-# رسم التمريرات والأحداث على الملعب
-for index, row in filtered_df.iterrows():
-    if pd.isna(row['X Start']) or pd.isna(row['Y Start']):
-        continue
-        
-    x_start = float(row['X Start']) * 100
-    y_start = float(row['Y Start']) * 100
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file).dropna(subset=['Event Type'])
+    st.sidebar.success("✅ تم تحميل البيانات بنجاح!")
     
-    if str(row['Event Type']).strip().lower() == 'pass' and not pd.isna(row['X End']):
-        x_end = float(row['X End']) * 100
-        y_end = float(row['Y End']) * 100
-        pitch.arrows(x_start, y_start, x_end, y_end, color='#3b82f6', width=2, headwidth=4, ax=ax)
-    else:
-        pitch.scatter(x_start, y_start, color='#10b981', s=100, edgecolors='#ffffff', ax=ax)
+    # توحيد البيانات ديناميكياً من ملفك
+    df['event_type'] = df['Event Type'].str.strip()
+    df['player'] = df['Players'].fillna('غير محدد')
+    df['timestamp'] = df['Start (mm:ss)']
+    if 'Start (ms)' in df.columns:
+        df['seconds'] = (df['Start (ms)'] / 1000).astype(int)
 
-st.pyplot(fig)
+    # 3. الفلاتر التكتيكية
+    st.markdown("### 🔍 فلاتر تصفية اللقطات والداتا")
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        selected_event = st.selectbox("اختر الحدث الفني:", ["الكل"] + list(df['event_type'].unique()))
+    with col_f2:
+        selected_player = st.selectbox("اختر اللاعب:", ["الكل"] + list(df['player'].unique()))
+            
+    filtered_df = df.copy()
+    if selected_event != "الكل":
+        filtered_df = filtered_df[filtered_df['event_type'] == selected_event]
+    if selected_player != "الكل":
+        filtered_df = filtered_df[filtered_df['player'] == selected_player]
+
+    st.markdown("---")
+
+    # 4. النصف العلوي: الفيديو والكروت
+    col_video, col_events = st.columns([1.3, 1])
+    
+    with col_video:
+        st.markdown("#### 🎥 مشغل الفيديو التفاعلي")
+        start_time = st.session_state.get("current_clip_time", 0)
+        st.video(f"{video_url_input}?t={start_time}", start_time=start_time)
+        if start_time > 0:
+            st.success(f"▶️ لقطة التوقيت الحالي: {start_time} ثانية")
+
+    with col_events:
+        st.markdown(f"#### 📊 قائمة اللقطات المتاحة ({len(filtered_df)})")
+        # عرض أول 8 لقطات لتوفير مساحة الرؤية
+        display_df = filtered_df.head(8)
+        for index, row in display_df.iterrows():
+            col_card, col_btn = st.columns([3, 1])
+            with col_card:
+                st.markdown(f"""
+                <div style="background-color: #1e293b; padding: 6px; border-radius: 5px; border-right: 3px solid #10b981; color: white; font-size:13px;">
+                    <strong>⏱️ {row['timestamp']}</strong> | {row['event_type']} - {row['player']}
+                </div>
+                """, unsafe_allow_html=True)
+            with col_btn:
+                if st.button("شاهد 📹", key=f"btn_{index}"):
+                    st.session_state["current_clip_time"] = int(row['seconds'])
+                    st.rerun()
+
+    st.markdown("---")
+    
+    # 5. النصف السفلي: رسم ملعب Opta الاحترافي عبر mplsoccer
+    st.markdown("#### 🏟️ خريطة التحليل التكتيكي (Opta Pitch Design)")
+    
+    # تجهيز الملعب بأبعاد Opta وألوان احترافية (خلفية داكنة متناسقة مع الموقع)
+    pitch = Pitch(pitch_type='opta', pitch_color='#1e242b', line_color='#f8fafc', linewidth=2)
+    fig, ax = pitch.draw(figsize=(10, 7))
+    
+    # فلترة الصفوف الجاهزة للرسم وتواجد الإحداثيات فيها
+    plot_df = filtered_df.dropna(subset=['X Start', 'Y Start'])
+    
+    if not plot_df.empty:
+        # ضرب الإحداثيات في 100 لأن داتا ملفك من 0 لـ 1 وملعب Opta من 0 لـ 100
+        x_start = plot_df['X Start'] * 100
+        y_start = plot_df['Y Start'] * 100
+        
+        # تفكيك الأحداث: تمريرات لوحدها، وباقي الأحداث (مثل التسديدات أو الضغط) لوحدها
+        passes_df = plot_df[plot_df['event_type'].str.lower() == 'pass']
+        other_events_df = plot_df[plot_df['event_type'].str.lower() != 'pass']
+        
+        # 1. رسم التمريرات بأسهم (خطوط ممتدة من البداية للنهاية)
+        if not passes_df.empty:
+            x_end = passes_df['X End'] * 100
+            y_end = passes_df['Y End'] * 100
+            pitch.arrows(
+                passes_df['X Start']*100, passes_df['Y Start']*100,
+                x_end, y_end, 
+                color='#3b82f6', width=2, headwidth=4, headlength=4,
+                ax=ax, label='Passes'
+            )
+            
+        # 2. رسم باقي الأحداث (Shots, Pressing, etc.) كنقاط مضيئة على الملعب
+        if not other_events_df.empty:
+            pitch.scatter(
+                other_events_df['X Start']*100, other_events_df['Y Start']*100,
+                color='#10b981', edgecolors='white', s=120, marker='o',
+                ax=ax, label='Other Events'
+            )
+            
+            # إضافة أسماء اللاعبين فوق النقطة في الملعب بشكل خفيف
+            for idx, row in other_events_df.iterrows():
+                ax.text(
+                    row['X Start']*100, row['Y Start']*100 + 1.5, 
+                    row['player'].split()[-1], # اسم عائلة اللاعب فقط لمنع زحمة الملعب
+                    color='#94a3b8', fontsize=9, ha='center'
+                )
+
+    # عرض رسمة الـ mplsoccer الاحترافية داخل الـ Streamlit
+    st.pyplot(fig)
+
+else:
+    st.info("👋 يرجى رفع ملف أحداث المباراة (CSV) لتوليد خريطة الملعب الاحترافية.")
