@@ -3,17 +3,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 
+# 1. إعدادات الصفحة
 st.set_page_config(page_title="TootScouting Hub", layout="wide")
+
 st.title("⚽ TootScouting - Match Analysis Dashboard")
 st.markdown("---")
 
-# 🔗 الرابط المباشر الصحيح بالـ gid لماتش NJS vs EPS
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI/export?format=csv&gid=1424911760"
-
+# 📂 قراءة ملف الـ CSV المحلي المرفوع في نفس الفولدر
 @st.cache_data(ttl=1)
 def load_data():
     try:
-        data = pd.read_csv(GOOGLE_SHEET_URL)
+        # لو مسمي الملف اسم تاني غير 'match_data.csv' غير الاسم هنا بس
+        data = pd.read_csv("match_data.csv")
         data.columns = data.columns.astype(str).str.strip()
         return data
     except:
@@ -33,9 +34,9 @@ if not df.empty:
     df['Start (mm:ss)'] = df[tm_c]
     df['Start (ms)'] = df[ms_c] if ms_c else 0
 else:
-    df = pd.DataFrame([{'Event Type': 'Pass', 'Players': 'Connecting...', 'Start (mm:ss)': '00:00', 'Start (ms)': 0, 'X Start': 0.5, 'Y Start': 0.5}])
+    df = pd.DataFrame([{'Event Type': 'Pass', 'Players': 'Please upload match_data.csv', 'Start (mm:ss)': '00:00', 'Start (ms)': 0, 'X Start': 0.5, 'Y Start': 0.5}])
 
-# الفلاتر
+# 2. الفلاتر الأساسية (Event & Player)
 col1, col2 = st.columns(2)
 with col1:
     event_types = ["All"] + list(df['Event Type'].dropna().unique())
@@ -50,7 +51,7 @@ if selected_player != "All": filtered_df = filtered_df[filtered_df['Players'] ==
 
 st.markdown("---")
 
-# تقسيم الشاشة
+# 3. تقسيم الشاشة: الفيديو والقائمة
 col_video, col_playlist = st.columns([1.5, 1])
 with col_video:
     st.markdown("### 🎥 Match Video")
@@ -64,3 +65,14 @@ with col_playlist:
         seconds = int(pd.to_numeric(ms_val, errors='coerce') / 1000) if not pd.isna(ms_val) else 0
         
         col_text, col_btn = st.columns([3, 1])
+        with col_text:
+            st.markdown(f"⏱️ **{row.get('Start (mm:ss)', '00:00')}** | {row.get('Event Type', 'Event')} - {row.get('Players', 'Player')}")
+        with col_btn:
+            if st.button("Watch", key=f"play_{index}"):
+                st.session_state["video_time"] = seconds
+                st.rerun()
+
+st.markdown("---")
+st.markdown("### 🏟️ Tactical Pitch Map")
+
+pitch = Pitch(pitch_type='opta', pitch_color='#0f1
