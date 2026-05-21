@@ -50,34 +50,40 @@ col_video, col_playlist = st.columns([1.5, 1])
 # ID الفيديو الثابت الخاص بك على جوجل درايف
 VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
 
+# إدارة وقت الفيديو في الـ session_state لمنع إعادة التشغيل من الأول
+if "video_seconds" not in st.session_state:
+    st.session_state["video_seconds"] = 0
+
 with col_video:
     st.markdown("### 🎥 Match Video Player")
     
-    # الروابط الرسمية المباشرة للمشاهدة
-    embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview"
+    # دمج التوقيت بالثواني داخل رابط الـ preview ليجبر جوجل درايف على البدء منه في نفس الصفحة
+    current_seconds = st.session_state["video_seconds"]
+    embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview?t={current_seconds}s"
     
-    # عرض مشغل الفيديو الأساسي
+    # عرض مشغل الفيديو في نفس الصفحة وتحديثه ديناميكياً
     st.components.v1.html(
-        f'<iframe src="{embed_url}" width="100%" height="400" allow="autoplay" allowfullscreen></iframe>',
+        f'<iframe src="{embed_url}" width="100%" height="400" allow="autoplay; encrypted-media" allowfullscreen></iframe>',
         height=410
     )
-    st.info("💡 نصيحة: اضغط على زرار Watch في القائمة الجانبية لفتح اللقطة بالثانية المطلوبة فوراً.")
+    st.caption(f"⏱️ التوقيت الحالي المشغل: {int(current_seconds // 60)}:{int(current_seconds % 60):02d} ({current_seconds} ثانية)")
 
 with col_playlist:
     st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
     
-    # عرض أول 20 لقطة مطابقة للفلاتر
+    # عرض اللقطات المطابقة للفلاتر
     for index, row in filtered_df.head(20).iterrows():
         ms = row.get('Start (ms)', 0)
         seconds = int(float(ms) / 1000) if not pd.isna(ms) else 0
         
-        col_text, col_btn = st.columns([2.5, 1.5])
+        col_text, col_btn = st.columns([3, 1])
         with col_text:
             st.markdown(f"⏱️ **{row['Start (mm:ss)']}** | {row['Event Type']} - {row['Players']}")
         with col_btn:
-            # زرار Watch ذكي: يفتح اللقطة بالثانية المطلوبة مباشرة في صفحة مستقلة
-            link_with_time = f"https://drive.google.com/file/d/{VIDEO_ID}/view?t={seconds}s"
-            st.link_button("📺 Watch Clip", link_with_time, use_container_width=True)
+            # زرار Watch عادي بيحدث الصفحة الحالية مش لينك خارجي
+            if st.button("Watch", key=f"play_{index}"):
+                st.session_state["video_seconds"] = seconds
+                st.rerun()
 
 st.markdown("---")
 
@@ -99,6 +105,4 @@ for index, row in filtered_df.iterrows():
         y_end = float(row['Y End']) * 100
         pitch.arrows(x_start, y_start, x_end, y_end, color='#3b82f6', width=2, headwidth=4, ax=ax)
     else:
-        pitch.scatter(x_start, y_start, color='#10b981', s=100, edgecolors='#ffffff', ax=ax)
-
-st.pyplot(fig)
+        pitch.scatter(x_start, y_start,
