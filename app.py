@@ -72,5 +72,26 @@ with col_playlist:
 st.markdown("---")
 st.markdown("### 🏟️ Tactical Pitch Map")
 
-# 🔒 تعديل أسطر الملعب لسطور قصيرة جداً ومحمية من قطع جيت هاب
-pitch = Pitch(pitch_type='opta',
+# 🔒 سطر الملعب مضغوط تماماً لمنع القطع نهائياً
+pitch = Pitch(pitch_type='opta')
+fig, ax = pitch.draw()
+
+x1 = next((c for c in filtered_df.columns if 'x start' in c.lower() or 'x_start' in c.lower()), None)
+y1 = next((c for c in filtered_df.columns if 'y start' in c.lower() or 'y_start' in c.lower()), None)
+x2 = next((c for c in filtered_df.columns if 'x end' in c.lower() or 'x_end' in c.lower()), None)
+y2 = next((c for c in filtered_df.columns if 'y end' in c.lower() or 'y_end' in c.lower()), None)
+
+if x1 and y1:
+    for index, row in filtered_df.dropna(subset=[x1, y1]).iterrows():
+        xs = float(pd.to_numeric(row[x1], errors='coerce')) * 100
+        ys = float(pd.to_numeric(row[y1], errors='coerce')) * 100
+        is_pass = str(row.get('Event Type', '')).strip().lower() == 'pass'
+        
+        if is_pass and x2 and not pd.isna(row[x2]):
+            xe = float(pd.to_numeric(row[x2], errors='coerce')) * 100
+            ye = float(pd.to_numeric(row[y2], errors='coerce')) * 100
+            pitch.arrows(xs, ys, xe, ye, width=2, headwidth=4, ax=ax)
+        else:
+            pitch.scatter(xs, ys, s=100, ax=ax)
+
+st.pyplot(fig)
