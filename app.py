@@ -21,56 +21,33 @@ st.title("⚽ TootScouting - Professional Scouting Database")
 st.markdown("<p style='color: #64748b; font-size: 16px;'>Multi-match tracking system & cumulative tactical pitch maps.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 🔗 Connected Google Sheet Database ID
-SPREADSHEET_ID = "1tmE0yxj-KiNZiu8OsP1eQnFzl9YyxK4vXkROGgfejVI"
-GOOGLE_SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv&gid=0"
+# داتا الـ Example Player الافتراضية ثابتة وجاهزة للعرض الفوري
+demo_data = [
+    {'Event Type': 'Pass', 'Players': 'Example Player (Goalkeeper)', 'Start (mm:ss)': '01:15', 'Start (ms)': 75000, 'X Start': 0.15, 'Y Start': 0.50, 'X End': 0.45, 'Y End': 0.20, 'Match': 'NJS vs EPS'},
+    {'Event Type': 'Pass', 'Players': 'Example Player (Goalkeeper)', 'Start (mm:ss)': '02:40', 'Start (ms)': 160000, 'X Start': 0.10, 'Y Start': 0.45, 'X End': 0.65, 'Y End': 0.80, 'Match': 'NJS vs EPS'},
+    {'Event Type': 'Pass', 'Players': 'Example Player (Goalkeeper)', 'Start (mm:ss)': '04:12', 'Start (ms)': 252000, 'X Start': 0.20, 'Y Start': 0.55, 'X End': 0.55, 'Y End': 0.52, 'Match': 'Match 2'},
+    {'Event Type': 'Shot', 'Players': 'Example Striker', 'Start (mm:ss)': '05:30', 'Start (ms)': 330000, 'X Start': 0.88, 'Y Start': 0.48, 'X End': 1.00, 'Y End': 0.50, 'Match': 'NJS vs EPS'},
+    {'Event Type': 'Interception', 'Players': 'Example Defender', 'Start (mm:ss)': '07:18', 'Start (ms)': 438000, 'X Start': 0.35, 'Y Start': 0.70, 'X End': 0.35, 'Y End': 0.70, 'Match': 'Match 2'}
+]
 
-@st.cache_data(ttl=5) 
-def load_database():
-    try:
-        data = pd.read_csv(GOOGLE_SHEET_URL)
-        # تنظيف أسماء الأعمدة من أي مسافات وتحويلها لحروف صغيرة لتفادي الأخطاء
-        data.columns = data.columns.astype(str).str.strip().str.lower()
-        return data
-    except Exception as e:
-        return pd.DataFrame()
-
-df = load_database()
-
-# التحقق من وجود الأعمدة الأساسية بأي صيغة (سمول أو كابيتال)
-has_required_columns = any(col in df.columns for col in ['event type', 'event_type', 'eventtype']) and any(col in df.columns for col in ['players', 'player'])
-
-if df.empty or not has_required_columns:
-    # داتا تجريبية آمنة لو الشيت لسه بيحمل
-    df = pd.DataFrame([{
-        'event type': 'Pass', 'players': 'Example Player', 'start (mm:ss)': '01:26', 
-        'start (ms)': 86970, 'x start': 0.50, 'y start': 0.50, 'x end': 0.69, 'y end': 0.50, 'match': 'NJS vs EPS'
-    }])
-    df.columns = df.columns.str.strip().str.lower()
+df = pd.DataFrame(demo_data)
 
 # توحيد مسميات الأعمدة داخلياً للكود
-df['event_final'] = df['event type'].astype(str).str.strip()
-df['player_final'] = df['players'].fillna('Unknown Player')
+df.columns = df.columns.str.strip()
+df['event_final'] = df['Event Type'].astype(str).str.strip()
+df['player_final'] = df['Players'].fillna('Unknown Player')
+df['timestamp'] = df['Start (mm:ss)']
+df['seconds'] = (df['Start (ms)'] / 1000).astype(int)
 
-if 'start (mm:ss)' in df.columns:
-    df['timestamp'] = df['start (mm:ss)']
-else:
-    df['timestamp'] = "00:00"
-
-if 'match' not in df.columns:
-    df['match'] = 'NJS vs EPS'
-    
-if 'start (ms)' in df.columns:
-    df['seconds'] = (pd.to_numeric(df['start (ms)'], errors='coerce') / 1000).fillna(0).astype(int)
-else:
-    df['seconds'] = 0
+if 'Match' not in df.columns:
+    df['Match'] = 'NJS vs EPS'
 
 # 2. Strategic Filters Section
-st.markdown("### 🔍 Multi-Match Analytics Filters")
+st.markdown("### 🔍 Multi-Match Analytics Filters (Demo Mode)")
 col_f1, col_f2, col_f3 = st.columns(3)
 
 with col_f1:
-    available_matches = ["All Matches"] + list(df['match'].unique())
+    available_matches = ["All Matches"] + list(df['Match'].unique())
     selected_match = st.selectbox("Select Match / Timeline:", available_matches)
     
 with col_f2:
@@ -84,7 +61,7 @@ with col_f3:
 # تطبيق الفلاتر
 filtered_df = df.copy()
 if selected_match != "All Matches":
-    filtered_df = filtered_df[filtered_df['match'] == selected_match]
+    filtered_df = filtered_df[filtered_df['Match'] == selected_match]
 if selected_event != "All Events":
     filtered_df = filtered_df[filtered_df['event_final'] == selected_event]
 if selected_player != "All Players":
@@ -98,17 +75,18 @@ col_video, col_playlist = st.columns([1.4, 1])
 with col_video:
     st.markdown("#### 🎥 Video Analysis Player")
     start_time = st.session_state.get("current_clip_time", 0)
+    # تشغيل فيديو يوتيوب الافتراضي متزامن بالثانية
     st.video(f"https://www.youtube.com/watch?v=dQw4w9WgXcQ&t={start_time}s", start_time=start_time)
 
 with col_playlist:
     st.markdown(f"#### 📊 Cumulative Playlist ({len(filtered_df)} Clips)")
     
-    for index, row in filtered_df.head(15).iterrows():
+    for index, row in filtered_df.iterrows():
         col_card, col_btn = st.columns([3.5, 1])
         with col_card:
             st.markdown(f"""
             <div style="background-color: #1e293b; padding: 10px; border-radius: 6px; border-left: 4px solid #3b82f6; margin-bottom: 5px;">
-                <span style="color: #3b82f6; font-weight: bold; font-size: 11px;">{row['match']} | ⏱️ {row['timestamp']}</span><br>
+                <span style="color: #3b82f6; font-weight: bold; font-size: 11px;">{row['Match']} | ⏱️ {row['timestamp']}</span><br>
                 <strong style="color: #f1f5f9; font-size: 13px;">{row['event_final']} - {row['player_final']}</strong>
             </div>
             """, unsafe_allow_html=True)
@@ -127,37 +105,29 @@ pitch = Pitch(pitch_type='opta', pitch_color='#0f172a', line_color='#334155', li
 fig, ax = pitch.draw(figsize=(10, 6))
 fig.patch.set_facecolor('#0f172a')
 
-# تنظيف ورسم الإحداثيات الحقيقية (بأي مسمى حروف صغيرة)
-x_start_col = 'x start' if 'x start' in filtered_df.columns else 'x_start'
-y_start_col = 'y start' if 'y start' in filtered_df.columns else 'y_start'
-x_end_col = 'x end' if 'x end' in filtered_df.columns else 'x_end'
-y_end_col = 'y end' if 'y end' in filtered_df.columns else 'y_end'
+# ضرب الإحداثيات في 100 لتتناسب مع ملعب أوبتا
+plot_df = filtered_df.copy()
+plot_df['X Start'] = plot_df['X Start'] * 100
+plot_df['Y Start'] = plot_df['Y Start'] * 100
+plot_df['X End'] = plot_df['X End'] * 100
+plot_df['Y End'] = plot_df['Y End'] * 100
 
-if x_start_col in filtered_df.columns and y_start_col in filtered_df.columns:
-    plot_df = filtered_df.dropna(subset=[x_start_col, y_start_col])
-    try:
-        plot_df[x_start_col] = pd.to_numeric(plot_df[x_start_col], errors='coerce') * 100
-        plot_df[y_start_col] = pd.to_numeric(plot_df[y_start_col], errors='coerce') * 100
+if not plot_df.empty:
+    # رسم التمريرات بأسهم
+    passes_df = plot_df[plot_df['event_final'].str.lower() == 'pass']
+    if not passes_df.empty:
+        pitch.arrows(
+            passes_df['X Start'], passes_df['Y Start'],
+            passes_df['X End'], passes_df['Y End'], 
+            color='#3b82f6', width=2.5, headwidth=4, headlength=4, ax=ax
+        )
         
-        # رسم أسهم التمريرات
-        passes_df = plot_df[plot_df['event_final'].str.lower() == 'pass']
-        if not passes_df.empty and x_end_col in passes_df.columns:
-            passes_df[x_end_col] = pd.to_numeric(passes_df[x_end_col], errors='coerce') * 100
-            passes_df[y_end_col] = pd.to_numeric(passes_df[y_end_col], errors='coerce') * 100
-            pitch.arrows(
-                passes_df[x_start_col], passes_df[y_start_col],
-                passes_df[x_end_col], passes_df[y_end_col], 
-                color='#3b82f6', width=2.5, headwidth=4, headlength=4, ax=ax
-            )
-            
-        # رسم باقي الأحداث
-        other_df = plot_df[plot_df['event_final'].str.lower() != 'pass']
-        if not other_df.empty:
-            pitch.scatter(
-                other_df[x_start_col], other_df[y_start_col],
-                color='#10b981', edgecolors='#ffffff', s=130, marker='o', ax=ax
-            )
-    except Exception as e:
-        pass
+    # رسم باقي الأحداث كنقاط
+    other_df = plot_df[plot_df['event_final'].str.lower() != 'pass']
+    if not other_df.empty:
+        pitch.scatter(
+            other_df['X Start'], other_df['Y Start'],
+            color='#10b981', edgecolors='#ffffff', s=130, marker='o', ax=ax
+        )
         
 st.pyplot(fig)
