@@ -47,37 +47,37 @@ st.markdown("---")
 # 3. تقسيم الشاشة: الفيديو والقائمة
 col_video, col_playlist = st.columns([1.5, 1])
 
+# ID الفيديو الثابت الخاص بك على جوجل درايف
+VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
+
 with col_video:
-    st.markdown("### 🎥 Match Video")
-    current_time = st.session_state.get("video_time", 0)
+    st.markdown("### 🎥 Match Video Player")
     
-    # ID الفيديو الخاص بك على جوجل درايف
-    VIDEO_ID = "16dhBkjeXxmitljigQgFmz1MX-Jsu2An_"
-    
-    # 🔒 استخدام طريقة الـ iframe لضمان تشغيل الفيديو من جوجل درايف وتجنب الحظر
+    # الروابط الرسمية المباشرة للمشاهدة
     embed_url = f"https://drive.google.com/file/d/{VIDEO_ID}/preview"
     
-    # عرض الفيديو داخل الموقع بشكل احترافي ومضمون
+    # عرض مشغل الفيديو الأساسي
     st.components.v1.html(
-        f'<iframe src="{embed_url}" width="100%" height="450" allow="autoplay" allowfullscreen></iframe>',
-        height=460
+        f'<iframe src="{embed_url}" width="100%" height="400" allow="autoplay" allowfullscreen></iframe>',
+        height=410
     )
-    st.caption(f"⏱️ التوقيت الحالي المستهدف في الـ Playlist: {current_time} ثانية")
+    st.info("💡 نصيحة: اضغط على زرار Watch في القائمة الجانبية لفتح اللقطة بالثانية المطلوبة فوراً.")
 
 with col_playlist:
     st.markdown(f"### 📊 Event Playlist ({len(filtered_df)} Clips)")
     
+    # عرض أول 20 لقطة مطابقة للفلاتر
     for index, row in filtered_df.head(20).iterrows():
         ms = row.get('Start (ms)', 0)
         seconds = int(float(ms) / 1000) if not pd.isna(ms) else 0
         
-        col_text, col_btn = st.columns([3, 1])
+        col_text, col_btn = st.columns([2.5, 1.5])
         with col_text:
             st.markdown(f"⏱️ **{row['Start (mm:ss)']}** | {row['Event Type']} - {row['Players']}")
         with col_btn:
-            if st.button("Watch", key=f"play_{index}"):
-                st.session_state["video_time"] = seconds
-                st.rerun()
+            # زرار Watch ذكي: يفتح اللقطة بالثانية المطلوبة مباشرة في صفحة مستقلة
+            link_with_time = f"https://drive.google.com/file/d/{VIDEO_ID}/view?t={seconds}s"
+            st.link_button("📺 Watch Clip", link_with_time, use_container_width=True)
 
 st.markdown("---")
 
